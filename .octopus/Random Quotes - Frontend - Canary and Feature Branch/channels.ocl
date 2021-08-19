@@ -1,0 +1,29 @@
+channel "Default" {
+    is_default = true
+
+    rules {
+        tag = "^$"
+        version_range = ""
+
+        deployment_action_packages "Deploy Web App" "webapp" {
+        }
+    }
+}
+
+channel "Feature Branch" {
+    description = ""
+    lifecycle_id = "Dev and Test"
+
+    rules {
+        tag = "^(?!latest\\b).+$"
+        version_range = ""
+
+        deployment_action_packages "Deploy Web App" "webapp" {
+        }
+    }
+}
+
+channel "Hotfix" {
+    description = ""
+    lifecycle_id = "Hotfix"
+}

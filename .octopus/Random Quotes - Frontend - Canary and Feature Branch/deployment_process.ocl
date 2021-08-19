@@ -1,0 +1,292 @@
+step "Deploy Web App" {
+    properties = {
+        Octopus.Action.TargetRoles = "Frontend"
+    }
+
+
+    action {
+        action_type = "Octopus.KubernetesDeployContainers"
+        properties = {
+            Octopus.Action.EnabledFeatures = "Octopus.Features.KubernetesService"
+            Octopus.Action.KubernetesContainers.Containers = "[{\"Name\":\"webapp\",\"Ports\":[{\"key\":\"web\",\"keyError\":null,\"value\":\"5555\",\"valueError\":null,\"option\":\"\",\"optionError\":null,\"option2\":\"\",\"option2Error\":null}],\"EnvironmentVariables\":[{\"key\":\"SERVER_SERVLET_CONTEXT_PATH\",\"keyError\":null,\"value\":\"#{ContextPath}\",\"valueError\":null,\"option\":\"\",\"optionError\":null,\"option2\":\"\",\"option2Error\":null},{\"key\":\"SPRING_CONFIG_NAME\",\"keyError\":null,\"value\":\"postgres-application\",\"valueError\":null,\"option\":\"\",\"optionError\":null,\"option2\":\"\",\"option2Error\":null},{\"key\":\"POSTGRES_USER\",\"keyError\":null,\"value\":\"postgres\",\"valueError\":null,\"option\":\"\",\"optionError\":null,\"option2\":\"\",\"option2Error\":null},{\"key\":\"POSTGRES_URL\",\"keyError\":null,\"value\":\"jdbc:postgresql://postgres.backend-#{Octopus.Environment.Name | ToLower}:5432/postgres\",\"valueError\":null,\"option\":\"\",\"optionError\":null,\"option2\":\"\",\"option2Error\":null},{\"key\":\"POSTGRES_PASS\",\"keyError\":null,\"value\":\"#{DatabasePassword}\",\"valueError\":null,\"option\":\"\",\"optionError\":null,\"option2\":\"\",\"option2Error\":null}],\"SecretEnvironmentVariables\":[],\"ConfigMapEnvironmentVariables\":[],\"FieldRefEnvironmentVariables\":[],\"ConfigMapEnvFromSource\":[],\"SecretEnvFromSource\":[],\"VolumeMounts\":[],\"Resources\":{\"requests\":{\"memory\":\"\",\"cpu\":\"\",\"ephemeralStorage\":\"\",\"amdGpu\":\"\",\"nvidiaGpu\":\"\",\"storage\":\"\"},\"limits\":{\"memory\":\"\",\"cpu\":\"\",\"ephemeralStorage\":\"\",\"amdGpu\":\"\",\"nvidiaGpu\":\"\",\"storage\":\"\"}},\"LivenessProbe\":{\"failureThreshold\":\"\",\"initialDelaySeconds\":\"\",\"periodSeconds\":\"\",\"successThreshold\":\"\",\"timeoutSeconds\":\"\",\"type\":\"\",\"exec\":{\"command\":[]},\"httpGet\":{\"host\":\"\",\"path\":\"\",\"port\":\"\",\"scheme\":\"\",\"httpHeaders\":[]},\"tcpSocket\":{\"host\":\"\",\"port\":\"\"}},\"ReadinessProbe\":{\"failureThreshold\":\"6\",\"initialDelaySeconds\":\"\",\"periodSeconds\":\"20\",\"successThreshold\":\"\",\"timeoutSeconds\":\"\",\"type\":\"TcpSocket\",\"exec\":{\"command\":[]},\"httpGet\":{\"host\":\"\",\"path\":\"/\",\"port\":\"5555\",\"scheme\":\"HTTP\",\"httpHeaders\":[]},\"tcpSocket\":{\"host\":\"\",\"port\":\"5555\"}},\"StartupProbe\":{\"failureThreshold\":\"\",\"initialDelaySeconds\":\"\",\"periodSeconds\":\"\",\"successThreshold\":\"\",\"timeoutSeconds\":\"\",\"type\":\"\",\"exec\":{\"command\":[]},\"httpGet\":{\"host\":\"\",\"path\":\"\",\"port\":\"\",\"scheme\":\"\",\"httpHeaders\":[]},\"tcpSocket\":{\"host\":\"\",\"port\":\"\"}},\"Command\":[],\"Args\":[],\"ImagePullPolicy\":\"Always\",\"SecurityContext\":{\"allowPrivilegeEscalation\":\"\",\"privileged\":\"\",\"readOnlyRootFilesystem\":\"\",\"runAsGroup\":\"\",\"runAsNonRoot\":\"\",\"runAsUser\":\"\",\"capabilities\":{\"add\":[],\"drop\":[]},\"seLinuxOptions\":{\"level\":\"\",\"role\":\"\",\"type\":\"\",\"user\":\"\"}},\"TerminationMessagePath\":\"\",\"TerminationMessagePolicy\":\"\",\"Lifecycle\":{\"PreStop\":null,\"PostStart\":null},\"CreateFeedSecrets\":\"True\"}]"
+            Octopus.Action.KubernetesContainers.DeploymentLabels = "{\"FeatureBranch\":\"#{PackagePreRelease}\"}"
+            Octopus.Action.KubernetesContainers.DeploymentName = "webapp-canary#{ServiceSuffix}-#{Octopus.Deployment.Id | ToLower}"
+            Octopus.Action.KubernetesContainers.DeploymentResourceType = "Deployment"
+            Octopus.Action.KubernetesContainers.DeploymentStyle = "Recreate"
+            Octopus.Action.KubernetesContainers.DeploymentWait = "Wait"
+            Octopus.Action.KubernetesContainers.IngressAnnotations = "[{\"key\":\"nginx.ingress.kubernetes.io/canary-weight\",\"keyError\":null,\"value\":\"0\",\"valueError\":null,\"option\":\"\",\"optionError\":null,\"option2\":\"\",\"option2Error\":null},{\"key\":\"nginx.ingress.kubernetes.io/canary\",\"keyError\":null,\"value\":\"true\",\"valueError\":null,\"option\":\"\",\"optionError\":null,\"option2\":\"\",\"option2Error\":null}]"
+            Octopus.Action.KubernetesContainers.IngressClassName = "nginx"
+            Octopus.Action.KubernetesContainers.IngressName = "webapp-#{Octopus.Deployment.Id | ToLower}"
+            Octopus.Action.KubernetesContainers.IngressRules = "[{\"host\":\"#{Hostname}\",\"http\":{\"paths\":[{\"key\":\"/\",\"value\":\"web\",\"option\":\"\",\"option2\":\"\",\"option2Error\":null}]}}]"
+            Octopus.Action.KubernetesContainers.LoadBalancerAnnotations = "[]"
+            Octopus.Action.KubernetesContainers.PodManagementPolicy = "OrderedReady"
+            Octopus.Action.KubernetesContainers.Replicas = "1"
+            Octopus.Action.KubernetesContainers.ServiceName = "webapp-canary#{ServiceSuffix}-#{Octopus.Deployment.Id | ToLower}"
+            Octopus.Action.KubernetesContainers.ServiceNameType = "External"
+            Octopus.Action.KubernetesContainers.ServicePorts = "[{\"name\":\"web\",\"port\":\"80\",\"targetPort\":\"5555\",\"nodePort\":\"\",\"protocol\":\"TCP\"}]"
+            Octopus.Action.KubernetesContainers.ServiceType = "LoadBalancer"
+        }
+
+        worker_pool_variable = ""
+
+        packages "webapp" {
+            acquisition_location = "NotAcquired"
+            feed = "Docker Hub"
+            package_id = "octopussamples/randomquotesjava"
+            properties = {
+                Extract = "False"
+                PackageParameterName = ""
+                SelectionMode = "immediate"
+            }
+
+        }
+    }
+}
+
+step "Smoke test" {
+
+    action {
+        action_type = "Octopus.Script"
+        properties = {
+            Octopus.Action.RunOnServer = "true"
+            Octopus.Action.Script.ScriptBody = <<-EOT
+                sleep 30
+                
+                # Contact the HTTP API
+                curl -sSf http://webapp-canary#{ServiceSuffix}-#{Octopus.Deployment.Id | ToLower}.frontend-#{Octopus.Environment.Name | ToLower}#{ContextPath}/api/quote > /dev/null
+                
+                # Fail if curl failed
+                if [[ $? != 0 ]]; then
+                	return 1
+                fi;
+                
+                # Contact the web frontend
+                curl -sSf http://webapp-canary#{ServiceSuffix}-#{Octopus.Deployment.Id | ToLower}.frontend-#{Octopus.Environment.Name | ToLower}#{ContextPath} > /dev/null
+            EOT
+            Octopus.Action.Script.ScriptSource = "Inline"
+            Octopus.Action.Script.Syntax = "Bash"
+        }
+
+        worker_pool = "Testing"
+
+        container {
+            feed = "Docker Hub"
+            image = "octopusdeploy/worker-tools:ubuntu.18.04"
+        }
+    }
+}
+
+step "Run integration tests" {
+
+    action {
+        action_type = "Octopus.Script"
+        properties = {
+            Octopus.Action.EnabledFeatures = "Octopus.Features.JsonConfigurationVariables"
+            Octopus.Action.Package.JsonConfigurationVariablesTargets = "IntegrationTest/*.json"
+            Octopus.Action.RunOnServer = "true"
+            Octopus.Action.Script.ScriptBody = <<-EOT
+                cat IntegrationTest/RandomQuotes.postman_collection.json
+                
+                newman run IntegrationTest/RandomQuotes.postman_collection.json
+            EOT
+            Octopus.Action.Script.ScriptSource = "Inline"
+            Octopus.Action.Script.Syntax = "Bash"
+        }
+
+        worker_pool = "Testing"
+
+        container {
+            feed = "Docker Hub"
+            image = "mcasperson/newman"
+        }
+
+        packages "IntegrationTest" {
+            acquisition_location = "Server"
+            feed = "Octopus Server (built-in)"
+            package_id = "IntegrationTest"
+            properties = {
+                Extract = "True"
+                SelectionMode = "immediate"
+            }
+
+        }
+    }
+}
+
+step "Run end-to-end test" {
+
+    action {
+        action_type = "Octopus.Script"
+        properties = {
+            Octopus.Action.EnabledFeatures = "Octopus.Features.JsonConfigurationVariables"
+            Octopus.Action.Package.JsonConfigurationVariablesTargets = "EndToEndTest/cypress.json"
+            Octopus.Action.RunOnServer = "true"
+            Octopus.Action.Script.ScriptBody = <<-EOT
+                cd EndToEndTest
+                cat cypress.json
+                cypress run > output.txt
+                RESULT=$?
+                echo "Cypres exit code was ${RESULT}"
+                new_octopusartifact "${PWD}/output.txt" "output.txt"
+                
+                if [[ -f mochawesome.html ]]; then
+                    inline-assets mochawesome.html selfcontained.html
+                    new_octopusartifact "${PWD}/selfcontained.html" "selfcontained.html"
+                fi
+                
+                if [[ -d cypress/screenshots/sample_spec.js ]]; then
+                    zip -r screenshots.zip cypress/screenshots/sample_spec.js
+                    new_octopusartifact "${PWD}/screenshots.zip" "screenshots.zip"
+                fi
+                
+                exit ${RESULT}
+            EOT
+            Octopus.Action.Script.ScriptSource = "Inline"
+            Octopus.Action.Script.Syntax = "Bash"
+        }
+
+        worker_pool = "Testing"
+
+        container {
+            feed = "Docker Hub"
+            image = "mcasperson/cypress"
+        }
+
+        packages "EndToEndTest" {
+            acquisition_location = "Server"
+            feed = "Octopus Server (built-in)"
+            package_id = "EndToEndTest"
+            properties = {
+                Extract = "True"
+                SelectionMode = "immediate"
+            }
+
+        }
+    }
+}
+
+step "Canary ingress at 50%" {
+    properties = {
+        Octopus.Action.TargetRoles = "Frontend"
+    }
+
+
+    action {
+        action_type = "Octopus.KubernetesDeployIngress"
+        properties = {
+            Octopus.Action.KubernetesContainers.DeploymentLabels = "{\"FeatureBranch\":\"#{PackagePreRelease}\"}"
+            Octopus.Action.KubernetesContainers.IngressAnnotations = "[{\"key\":\"nginx.ingress.kubernetes.io/canary-weight\",\"value\":\"50\"},{\"key\":\"nginx.ingress.kubernetes.io/canary\",\"value\":\"true\"}]"
+            Octopus.Action.KubernetesContainers.IngressClassName = "nginx"
+            Octopus.Action.KubernetesContainers.IngressName = "webapp-canary#{ServiceSuffix}-#{Octopus.Deployment.Id | ToLower}"
+            Octopus.Action.KubernetesContainers.IngressRules = "[{\"host\":\"#{Hostname}\",\"http\":{\"paths\":[{\"key\":\"#{ContextPath}\",\"value\":\"web\",\"option\":\"webapp-canary#{ServiceSuffix}-#{Octopus.Deployment.Id | ToLower}\"}]}}]"
+            Octopus.Action.KubernetesContainers.IngressTlsCertificates = "[]"
+        }
+
+        worker_pool_variable = ""
+
+        container {
+            feed = "Docker Hub"
+            image = "octopusdeploy/worker-tools:2.0.1-windows.ltsc2019"
+        }
+    }
+}
+
+step "Increase canary traffic to 100%" {
+
+    action {
+        action_type = "Octopus.Manual"
+        properties = {
+            Octopus.Action.Manual.BlockConcurrentDeployments = "True"
+            Octopus.Action.Manual.Instructions = "Do you wish to increase the canary traffic to 100%"
+        }
+
+        worker_pool_variable = ""
+    }
+}
+
+step "Canary ingress at 100%" {
+    properties = {
+        Octopus.Action.TargetRoles = "Frontend"
+    }
+
+
+    action {
+        action_type = "Octopus.KubernetesDeployIngress"
+        properties = {
+            Octopus.Action.KubernetesContainers.DeploymentLabels = "{\"FeatureBranch\":\"#{PackagePreRelease}\"}"
+            Octopus.Action.KubernetesContainers.IngressAnnotations = "[]"
+            Octopus.Action.KubernetesContainers.IngressClassName = "nginx"
+            Octopus.Action.KubernetesContainers.IngressName = "webapp-canary#{ServiceSuffix}"
+            Octopus.Action.KubernetesContainers.IngressRules = "[{\"host\":\"#{Hostname}\",\"http\":{\"paths\":[{\"key\":\"#{ContextPath}\",\"value\":\"web\",\"option\":\"webapp-canary#{ServiceSuffix}-#{Octopus.Deployment.Id | ToLower}\"}]}}]"
+            Octopus.Action.KubernetesContainers.IngressTlsCertificates = "[]"
+        }
+
+        worker_pool_variable = ""
+
+        container {
+            feed = "Docker Hub"
+            image = "octopusdeploy/worker-tools:2.0.1-windows.ltsc2019"
+        }
+    }
+}
+
+step "Delete blue stack" {
+    properties = {
+        Octopus.Action.TargetRoles = "Frontend"
+    }
+
+
+    action {
+        action_type = "Octopus.KubernetesRunScript"
+        properties = {
+            Octopus.Action.Script.ScriptBody = <<-EOT
+                kubectl delete ingress webapp-canary#{ServiceSuffix}-#{Octopus.Deployment.Id | ToLower}
+                
+                kubectl delete ingress -l Octopus.Project.Id=#{Octopus.Project.Id | ToLower},Octopus.Environment.Id=#{Octopus.Environment.Id | ToLower},Octopus.Deployment.Tenant.Id=#{unless Octopus.Deployment.Tenant.Id}untenanted#{/unless}#{if Octopus.Deployment.Tenant.Id}#{Octopus.Deployment.Tenant.Id | ToLower}#{/if},Octopus.Deployment.Id!=#{Octopus.Deployment.Id | ToLower},FeatureBranch=#{PackagePreRelease}
+                
+                kubectl delete service -l Octopus.Project.Id=#{Octopus.Project.Id | ToLower},Octopus.Environment.Id=#{Octopus.Environment.Id | ToLower},Octopus.Deployment.Tenant.Id=#{unless Octopus.Deployment.Tenant.Id}untenanted#{/unless}#{if Octopus.Deployment.Tenant.Id}#{Octopus.Deployment.Tenant.Id | ToLower}#{/if},Octopus.Deployment.Id!=#{Octopus.Deployment.Id | ToLower},FeatureBranch=#{PackagePreRelease}
+                
+                kubectl delete deployment -l Octopus.Project.Id=#{Octopus.Project.Id | ToLower},Octopus.Environment.Id=#{Octopus.Environment.Id | ToLower},Octopus.Deployment.Tenant.Id=#{unless Octopus.Deployment.Tenant.Id}untenanted#{/unless}#{if Octopus.Deployment.Tenant.Id}#{Octopus.Deployment.Tenant.Id | ToLower}#{/if},Octopus.Deployment.Id!=#{Octopus.Deployment.Id | ToLower},FeatureBranch=#{PackagePreRelease}
+            EOT
+            Octopus.Action.Script.ScriptSource = "Inline"
+            Octopus.Action.Script.Syntax = "PowerShell"
+        }
+
+        worker_pool_variable = ""
+
+        container {
+            feed = "Docker Hub"
+            image = "octopusdeploy/worker-tools:2.0.1-windows.ltsc2019"
+        }
+    }
+}
+
+step "Delete green stack on failure" {
+    condition = "Failure"
+    properties = {
+        Octopus.Action.TargetRoles = "Frontend"
+    }
+
+
+    action {
+        action_type = "Octopus.KubernetesRunScript"
+        properties = {
+            Octopus.Action.Script.ScriptBody = <<-EOT
+                kubectl delete ingress -l Octopus.Deployment.Id=#{Octopus.Deployment.Id | ToLower}
+                
+                kubectl delete service -l Octopus.Deployment.Id=#{Octopus.Deployment.Id | ToLower}
+                
+                kubectl delete deployment -l Octopus.Deployment.Id=#{Octopus.Deployment.Id | ToLower}
+            EOT
+            Octopus.Action.Script.ScriptSource = "Inline"
+            Octopus.Action.Script.Syntax = "PowerShell"
+        }
+
+        worker_pool_variable = ""
+
+        container {
+            feed = "Docker Hub"
+            image = "octopusdeploy/worker-tools:2.0.1-windows.ltsc2019"
+        }
+    }
+}
