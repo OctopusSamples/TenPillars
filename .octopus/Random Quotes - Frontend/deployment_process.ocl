@@ -1,0 +1,232 @@
+step "Deploy Web App" {
+    properties = {
+        Octopus.Action.TargetRoles = "Frontend"
+    }
+
+
+    action {
+        action_type = "Octopus.KubernetesDeployContainers"
+        properties = {
+            Octopus.Action.EnabledFeatures = "Octopus.Features.KubernetesService"
+            Octopus.Action.KubernetesContainers.Containers = "[{\"Name\":\"webapp\",\"Ports\":[{\"key\":\"web\",\"keyError\":null,\"value\":\"5555\",\"valueError\":null,\"option\":\"\",\"optionError\":null,\"option2\":\"\",\"option2Error\":null}],\"EnvironmentVariables\":[{\"key\":\"SPRING_CONFIG_NAME\",\"keyError\":null,\"value\":\"postgres-application\",\"valueError\":null,\"option\":\"\",\"optionError\":null,\"option2\":\"\",\"option2Error\":null},{\"key\":\"POSTGRES_USER\",\"keyError\":null,\"value\":\"postgres\",\"valueError\":null,\"option\":\"\",\"optionError\":null,\"option2\":\"\",\"option2Error\":null},{\"key\":\"POSTGRES_URL\",\"keyError\":null,\"value\":\"jdbc:postgresql://postgres.backend-development:5432/postgres\",\"valueError\":null,\"option\":\"\",\"optionError\":null,\"option2\":\"\",\"option2Error\":null},{\"key\":\"POSTGRES_PASS\",\"keyError\":null,\"value\":\"#{DatabasePassword}\",\"valueError\":null,\"option\":\"\",\"optionError\":null,\"option2\":\"\",\"option2Error\":null}],\"SecretEnvironmentVariables\":[],\"ConfigMapEnvironmentVariables\":[],\"FieldRefEnvironmentVariables\":[],\"ConfigMapEnvFromSource\":[],\"SecretEnvFromSource\":[],\"VolumeMounts\":[],\"Resources\":{\"requests\":{\"memory\":\"\",\"cpu\":\"\",\"ephemeralStorage\":\"\",\"amdGpu\":\"\",\"nvidiaGpu\":\"\",\"storage\":\"\"},\"limits\":{\"memory\":\"\",\"cpu\":\"\",\"ephemeralStorage\":\"\",\"amdGpu\":\"\",\"nvidiaGpu\":\"\",\"storage\":\"\"}},\"LivenessProbe\":{\"failureThreshold\":\"\",\"initialDelaySeconds\":\"\",\"periodSeconds\":\"\",\"successThreshold\":\"\",\"timeoutSeconds\":\"\",\"type\":\"\",\"exec\":{\"command\":[]},\"httpGet\":{\"host\":\"\",\"path\":\"\",\"port\":\"\",\"scheme\":\"\",\"httpHeaders\":[]},\"tcpSocket\":{\"host\":\"\",\"port\":\"\"}},\"ReadinessProbe\":{\"failureThreshold\":\"\",\"initialDelaySeconds\":\"\",\"periodSeconds\":\"\",\"successThreshold\":\"\",\"timeoutSeconds\":\"\",\"type\":\"\",\"exec\":{\"command\":[]},\"httpGet\":{\"host\":\"\",\"path\":\"\",\"port\":\"\",\"scheme\":\"\",\"httpHeaders\":[]},\"tcpSocket\":{\"host\":\"\",\"port\":\"\"}},\"StartupProbe\":{\"failureThreshold\":\"\",\"initialDelaySeconds\":\"\",\"periodSeconds\":\"\",\"successThreshold\":\"\",\"timeoutSeconds\":\"\",\"type\":\"\",\"exec\":{\"command\":[]},\"httpGet\":{\"host\":\"\",\"path\":\"\",\"port\":\"\",\"scheme\":\"\",\"httpHeaders\":[]},\"tcpSocket\":{\"host\":\"\",\"port\":\"\"}},\"Command\":[],\"Args\":[],\"SecurityContext\":{\"allowPrivilegeEscalation\":\"\",\"privileged\":\"\",\"readOnlyRootFilesystem\":\"\",\"runAsGroup\":\"\",\"runAsNonRoot\":\"\",\"runAsUser\":\"\",\"capabilities\":{\"add\":[],\"drop\":[]},\"seLinuxOptions\":{\"level\":\"\",\"role\":\"\",\"type\":\"\",\"user\":\"\"}},\"TerminationMessagePath\":\"\",\"TerminationMessagePolicy\":\"\",\"Lifecycle\":{\"PreStop\":null,\"PostStart\":null},\"CreateFeedSecrets\":\"True\"}]"
+            Octopus.Action.KubernetesContainers.DeploymentName = "webapp"
+            Octopus.Action.KubernetesContainers.DeploymentResourceType = "Deployment"
+            Octopus.Action.KubernetesContainers.DeploymentStyle = "BlueGreen"
+            Octopus.Action.KubernetesContainers.DeploymentWait = "Wait"
+            Octopus.Action.KubernetesContainers.IngressAnnotations = "[]"
+            Octopus.Action.KubernetesContainers.PodManagementPolicy = "OrderedReady"
+            Octopus.Action.KubernetesContainers.Replicas = "1"
+            Octopus.Action.KubernetesContainers.ServiceName = "webapp"
+            Octopus.Action.KubernetesContainers.ServiceNameType = "External"
+            Octopus.Action.KubernetesContainers.ServicePorts = "[{\"name\":\"web\",\"port\":\"80\",\"targetPort\":\"5555\",\"nodePort\":\"\",\"protocol\":\"TCP\"}]"
+            Octopus.Action.KubernetesContainers.ServiceType = "LoadBalancer"
+        }
+
+        worker_pool_variable = ""
+
+        packages "webapp" {
+            acquisition_location = "NotAcquired"
+            feed = "Docker Hub"
+            package_id = "octopussamples/randomquotesjava"
+            properties = {
+                Extract = "False"
+                PackageParameterName = ""
+                SelectionMode = "immediate"
+            }
+
+        }
+    }
+}
+
+step "Smoke test" {
+
+    action {
+        action_type = "Octopus.Script"
+        properties = {
+            Octopus.Action.RunOnServer = "true"
+            Octopus.Action.Script.ScriptBody = <<-EOT
+                sleep 10
+                
+                # Contact the HTTP API
+                curl -sSf http://webapp.frontend-development/api/quote > /dev/null
+                
+                # Fail if curl failed
+                if [[ $? != 0 ]]; then
+                	return 1
+                fi;
+                
+                # Contact the web frontend
+                curl -sSf http://webapp.frontend-development > /dev/null
+            EOT
+            Octopus.Action.Script.ScriptSource = "Inline"
+            Octopus.Action.Script.Syntax = "Bash"
+        }
+
+        worker_pool = "Testing"
+
+        container {
+            feed = "Docker Hub"
+            image = "octopusdeploy/worker-tools:ubuntu.18.04"
+        }
+    }
+}
+
+step "Run a Script" {
+
+    action {
+        action_type = "Octopus.Script"
+        properties = {
+            Octopus.Action.RunOnServer = "true"
+            Octopus.Action.Script.ScriptBody = "newman run IntegrationTest/RandomQuotes.postman_collection.json"
+            Octopus.Action.Script.ScriptSource = "Inline"
+            Octopus.Action.Script.Syntax = "Bash"
+        }
+
+        worker_pool = "Testing"
+
+        container {
+            feed = "Docker Hub"
+            image = "mcasperson/newman:latest"
+        }
+
+        packages "IntegrationTest" {
+            acquisition_location = "Server"
+            feed = "Octopus Server (built-in)"
+            package_id = "IntegrationTest"
+            properties = {
+                Extract = "True"
+                SelectionMode = "immediate"
+            }
+
+        }
+    }
+}
+
+step "Run end-to-end test" {
+
+    action {
+        action_type = "Octopus.Script"
+        properties = {
+            Octopus.Action.EnabledFeatures = "Octopus.Features.JsonConfigurationVariables"
+            Octopus.Action.Package.JsonConfigurationVariablesTargets = "EndToEndTest/cypress.json"
+            Octopus.Action.RunOnServer = "true"
+            Octopus.Action.Script.ScriptBody = <<-EOT
+                cd EndToEndTest
+                cypress run > output.txt
+                RESULT=$?
+                echo "Cypres exit code was ${RESULT}"
+                new_octopusartifact "${PWD}/output.txt" "output.txt"
+                
+                if [[ -f mochawesome.html ]]; then
+                    inline-assets mochawesome.html selfcontained.html
+                    new_octopusartifact "${PWD}/selfcontained.html" "selfcontained.html"
+                fi
+                
+                if [[ -d cypress/screenshots/sample_spec.js ]]; then
+                    zip -r screenshots.zip cypress/screenshots/sample_spec.js
+                    new_octopusartifact "${PWD}/screenshots.zip" "screenshots.zip"
+                fi
+                
+                exit ${RESULT}
+            EOT
+            Octopus.Action.Script.ScriptSource = "Inline"
+            Octopus.Action.Script.Syntax = "Bash"
+        }
+
+        worker_pool = "Testing"
+
+        container {
+            feed = "Docker Hub"
+            image = "mcasperson/cypress"
+        }
+
+        packages "EndToEndTest" {
+            acquisition_location = "Server"
+            feed = "Octopus Server (built-in)"
+            package_id = "EndToEndTest"
+            properties = {
+                Extract = "True"
+                SelectionMode = "immediate"
+            }
+
+        }
+    }
+}
+
+step "Display build info PowerShell" {
+
+    action {
+        action_type = "Octopus.Script"
+        properties = {
+            Octopus.Action.RunOnServer = "true"
+            Octopus.Action.Script.ScriptBody = <<-EOT
+                echo @"
+                #{each change in Octopus.Deployment.Changes}
+                - Release version #{change.Version} has the following packages:
+                #{each buildInformation in change.BuildInformation}
+                  - Package ID: #{buildInformation.PackageId}
+                  - Package Version: #{buildInformation.Version}
+                  - Build URL: #{buildInformation.BuildUrl}
+                #{/each}
+                The following comments were included in the packages:
+                #{each commit in change.Commits}
+                  - Commit ID: #{commit.Id}
+                  - Commit URL #{commit.LinkUrl}
+                  - Comment: #{commit.Comment}
+                #{/each}
+                The following work items were referenced in the commits:
+                #{each workitem in change.WorkItems}
+                  - Work Item ID: #{workitem.Id}
+                  - Work Item URL: #{workitem.LinkUrl}
+                  - Work Item Source: #{workitem.Source}
+                  - Work Item Description: #{workitem.Description}
+                #{/each}
+                #{/each}
+                "@
+            EOT
+            Octopus.Action.Script.ScriptSource = "Inline"
+            Octopus.Action.Script.Syntax = "PowerShell"
+        }
+
+        worker_pool = "Hosted Windows"
+    }
+}
+
+step "Display build info Bash" {
+
+    action {
+        action_type = "Octopus.Script"
+        properties = {
+            Octopus.Action.RunOnServer = "true"
+            Octopus.Action.Script.ScriptBody = <<-EOT
+                cat << EOF
+                #{each change in Octopus.Deployment.Changes}
+                - Release version #{change.Version} has the following packages:
+                #{each buildInformation in change.BuildInformation}
+                  - Package ID: #{buildInformation.PackageId}
+                  - Package Version: #{buildInformation.Version}
+                  - Build URL: #{buildInformation.BuildUrl}
+                #{/each}
+                The following comments were included in the packages:
+                #{each commit in change.Commits}
+                  - Commit ID: #{commit.Id}
+                  - Commit URL #{commit.LinkUrl}
+                  - Comment: #{commit.Comment}
+                #{/each}
+                The following work items were referenced in the commits:
+                #{each workitem in change.WorkItems}
+                  - Work Item ID: #{workitem.Id}
+                  - Work Item URL: #{workitem.LinkUrl}
+                  - Work Item Source: #{workitem.Source}
+                  - Work Item Description: #{workitem.Description}
+                #{/each}
+                #{/each}
+                EOF
+            EOT
+            Octopus.Action.Script.ScriptSource = "Inline"
+            Octopus.Action.Script.Syntax = "Bash"
+        }
+
+        worker_pool = "Hosted Ubuntu"
+    }
+}

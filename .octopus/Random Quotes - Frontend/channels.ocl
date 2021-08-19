@@ -1,0 +1,11 @@
+channel "Default" {
+    is_default = true
+
+    rules {
+        tag = "^(?!latest\\b).+$|^$"
+        version_range = ""
+
+        deployment_action_packages "Deploy Web App" "webapp" {
+        }
+    }
+}
