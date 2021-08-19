@@ -1,0 +1,8 @@
+channel "Default" {
+    is_default = true
+}
+
+channel "Hotfix" {
+    description = ""
+    lifecycle_id = "Hotfix"
+}
